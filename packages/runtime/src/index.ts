@@ -3,6 +3,7 @@
 export {
   BaseNodeRegistry,
   type NodeImplementationConstructor,
+  type NodePlugin,
 } from "./base-node-registry";
 export {
   Runtime,

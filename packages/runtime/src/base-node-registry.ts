@@ -9,6 +9,16 @@ export interface NodeImplementationConstructor<Env = unknown> {
 }
 
 /**
+ * A set of node implementations shipped outside the core registry. Plugins are
+ * ordinary modules bundled at build time; nothing is loaded at runtime.
+ */
+export interface NodePlugin<Env = unknown> {
+  /** Stable identifier, used in errors to name the plugin at fault. */
+  readonly id: string;
+  readonly nodes: readonly NodeImplementationConstructor<Env>[];
+}
+
+/**
  * Abstract base class for node registries that provides common functionality
  * for managing node implementations and node operations.
  */
@@ -38,6 +48,31 @@ export abstract class BaseNodeRegistry<Env = unknown> {
       throw new Error("NodeType is not defined");
     }
     this.implementations.set(Implementation.nodeType.type, Implementation);
+  }
+
+  /**
+   * Register every node of a plugin. A node type that is already registered —
+   * built-in or from an earlier plugin — is rejected rather than replaced, and
+   * the whole plugin is checked before any of its nodes is registered, so a
+   * rejected plugin leaves the registry untouched.
+   */
+  public registerPlugin(plugin: NodePlugin<Env>): void {
+    const seen = new Set<string>();
+    for (const Implementation of plugin.nodes) {
+      const type = Implementation?.nodeType?.type;
+      if (!type) {
+        throw new Error(`Plugin "${plugin.id}": a node has no NodeType`);
+      }
+      if (this.implementations.has(type) || seen.has(type)) {
+        throw new Error(
+          `Plugin "${plugin.id}": node type "${type}" is already registered`
+        );
+      }
+      seen.add(type);
+    }
+    for (const Implementation of plugin.nodes) {
+      this.implementations.set(Implementation.nodeType.type, Implementation);
+    }
   }
 
   /**

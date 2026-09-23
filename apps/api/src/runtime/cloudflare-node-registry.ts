@@ -492,6 +492,7 @@ import {
   MultiStepAdditionNode,
 } from "@dafthunk/runtime/specification/multi-step-test-nodes";
 import type { Bindings } from "../context";
+import { nodePlugins } from "../plugins";
 
 export class CloudflareNodeRegistry extends BaseNodeRegistry<Bindings> {
   protected registerNodes(): void {
@@ -1137,5 +1138,9 @@ export class CloudflareNodeRegistry extends BaseNodeRegistry<Bindings> {
     this.registerImplementation(AgentGpt41Node);
     this.registerImplementation(AgentGlm47FlashNode);
     this.registerImplementation(AgentQwen330BA3BFp8Node);
+
+    for (const plugin of nodePlugins) {
+      this.registerPlugin(plugin);
+    }
   }
 }
