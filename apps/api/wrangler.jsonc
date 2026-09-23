@@ -297,68 +297,41 @@
           "class_name": "Runtime"
         }
       ],
-      "browser": {
-        "binding": "BROWSER"
-      },
       "ai": {
         "binding": "AI"
       },
-      // AI Search (formerly AutoRAG) namespace binding. Dataset search resolves
-      // instances by name (DATASETS_AUTORAG) within this namespace at runtime.
-      "ai_search_namespaces": [
-        {
-          "binding": "AI_SEARCH",
-          "namespace": "default"
-        }
+      // CNB deploy: no browser, AI Search, containers or worker loaders (D15 scope). Their bindings
+      // are optional in context.ts, so the nodes that need them are just not registered.
+      "routes": [
+        { "pattern": "workflows-api.clinicanobairro.com.br", "custom_domain": true }
       ],
-      "containers": [
-        {
-          "class_name": "FFmpegContainer",
-          "image": "./containers/ffmpeg/Dockerfile",
-          "max_instances": 5,
-          "instance_type": "standard-1"
-        },
-        {
-          "class_name": "Sandbox",
-          "image": "./containers/duckdb/Dockerfile",
-          "max_instances": 5,
-          "instance_type": "standard-1"
-        },
-        {
-          "class_name": "LanguageSandbox",
-          "image": "./Dockerfile",
-          "max_instances": 5,
-          "instance_type": "standard-1"
-        }
-      ],
-      "worker_loaders": [{ "binding": "LOADER" }],
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "dafthunk-production",
-          "database_id": "1d40113a-d6ec-4a46-8ba8-7958ee15b79a",
-          "preview_database_id": "1d40113a-d6ec-4a46-8ba8-7958ee15b79a",
+          "database_name": "cnb-dafthunk-production",
+          "database_id": "80e06cd1-2211-4e45-aa57-c809c553fc26",
+          "preview_database_id": "80e06cd1-2211-4e45-aa57-c809c553fc26",
           "migrations_dir": "./src/db/migrations"
         }
       ],
       "kv_namespaces": [
         {
           "binding": "KV",
-          "id": "f6129098413146f7ba3b4c6ac8bd0c82"
+          "id": "66a91ebd1b7f4530b631635a2b1130f5"
         }
       ],
       "r2_buckets": [
         {
           "binding": "RESSOURCES",
-          "bucket_name": "dafthunk-ressources-production"
+          "bucket_name": "cnb-dafthunk-ressources"
         },
         {
           "binding": "DATASETS",
-          "bucket_name": "dafthunk-datasets-production"
+          "bucket_name": "cnb-dafthunk-datasets"
         },
         {
           "binding": "INBOXES",
-          "bucket_name": "dafthunk-inboxes-production"
+          "bucket_name": "cnb-dafthunk-inboxes"
         }
       ],
       "analytics_engine_datasets": [
@@ -371,11 +344,7 @@
           "dataset": "dafthunk_generations_production"
         }
       ],
-      "send_email": [
-        {
-          "name": "SEND_EMAIL"
-        }
-      ],
+      // CNB deploy: no SEND_EMAIL binding. Welcome email is best effort and invites are unused.
       "durable_objects": {
         "bindings": [
           {
@@ -392,18 +361,6 @@
             "name": "WORKFLOW_AGENT",
             "class_name": "WorkflowAgent",
             "script_name": "dafthunk-api"
-          },
-          {
-            "name": "FFMPEG_CONTAINER",
-            "class_name": "FFmpegContainer"
-          },
-          {
-            "name": "DUCKDB_SANDBOX",
-            "class_name": "Sandbox"
-          },
-          {
-            "name": "SANDBOX",
-            "class_name": "LanguageSandbox"
           },
           {
             "name": "MAILBOX",
@@ -510,26 +467,25 @@
         ]
       },
       "vars": {
-        "WEB_HOST": "https://app.dafthunk.com",
-        "WEBSITE_URL": "https://www.dafthunk.com",
-        "EMAIL_DOMAIN": "mail.dafthunk.com",
-        "SEND_EMAIL_FROM": "noreply@mail.dafthunk.com",
-        "SUPPORT_EMAIL_HANDLE": "bertil",
-        "SUPPORT_EMAIL_FROM": "bertil@dafthunk.com",
-        // Placeholder for the future AutoRAG instance over the INBOXES bucket;
-        // wire it up via the Cloudflare dashboard, then set this to the name.
+        "WEB_HOST": "https://workflows.clinicanobairro.com.br",
+        "CLOUDFLARE_ENV": "production",
+        "WEBSITE_URL": "https://workflows.clinicanobairro.com.br",
+        "EMAIL_DOMAIN": "",
+        "SEND_EMAIL_FROM": "",
+        "SUPPORT_EMAIL_HANDLE": "",
+        "SUPPORT_EMAIL_FROM": "",
         "INBOXES_AUTORAG": ""
       },
       "queues": {
         "producers": [
           {
             "binding": "WORKFLOW_QUEUE",
-            "queue": "dafthunk-workflow-queue"
+            "queue": "cnb-dafthunk-workflow-queue"
           }
         ],
         "consumers": [
           {
-            "queue": "dafthunk-workflow-queue",
+            "queue": "cnb-dafthunk-workflow-queue",
             "max_batch_size": 10,
             "max_batch_timeout": 30
           }

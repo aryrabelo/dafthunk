@@ -7,5 +7,15 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
+  },
+
+  // CNB deploy (D15): the app lives on its own host; the API is workflows-api.
+  "env": {
+    "production": {
+      "name": "dafthunk-app",
+      "routes": [
+        { "pattern": "workflows.clinicanobairro.com.br", "custom_domain": true }
+      ]
+    }
   }
 }
