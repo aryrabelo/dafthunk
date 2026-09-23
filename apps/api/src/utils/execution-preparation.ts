@@ -8,6 +8,13 @@ import {
 } from "../utils/request-parser";
 import { validateWorkflowForExecution } from "../utils/workflows";
 
+const CREDENTIAL_HEADERS: Record<string, true> = {
+  authorization: true,
+  cookie: true,
+  "x-api-key": true,
+  "proxy-authorization": true,
+};
+
 /**
  * Workflow data structure for execution
  */
@@ -104,8 +111,13 @@ export async function prepareWorkflowExecution(
     };
   }
 
-  // Extract HTTP request information
-  const headers = c.req.header();
+  // Extract HTTP request information. Credential headers are dropped so they
+  // never reach node outputs or persisted execution records.
+  const headers = Object.fromEntries(
+    Object.entries(c.req.header()).filter(
+      ([name]) => CREDENTIAL_HEADERS[name.toLowerCase()] !== true
+    )
+  );
   const url = c.req.url;
   const method = c.req.method;
   const query = Object.fromEntries(new URL(c.req.url).searchParams.entries());
