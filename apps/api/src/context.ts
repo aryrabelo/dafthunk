@@ -37,6 +37,7 @@ export interface Bindings {
   EXECUTIONS: AnalyticsEngineDataset;
   GENERATIONS: AnalyticsEngineDataset;
   WEB_HOST: string;
+  COOKIE_DOMAIN?: string;
   WEBSITE_URL: string;
   EMAIL_DOMAIN: string;
   JWT_SECRET: string;

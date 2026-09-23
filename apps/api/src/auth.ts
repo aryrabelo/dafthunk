@@ -101,9 +101,25 @@ export const verifyTokenForRateLimit = async (
   }
 };
 
-const urlToTopLevelDomain = (url: string): string => {
+// Two-label public suffixes such as com.br, co.uk or com.au. Browsers reject a
+// cookie whose Domain is a public suffix, so these must never be emitted.
+const TWO_LABEL_PUBLIC_SUFFIX = /^(com|net|org|gov|edu|co)\.[a-z]{2}$/;
+
+/**
+ * Domain attribute for auth cookies. COOKIE_DOMAIN wins when set; otherwise
+ * the last two labels of WEB_HOST, or undefined (host-only cookie) when those
+ * labels are a public suffix.
+ */
+const cookieDomain = (env: {
+  WEB_HOST: string;
+  COOKIE_DOMAIN?: string;
+}): string | undefined => {
+  if (env.COOKIE_DOMAIN) {
+    return env.COOKIE_DOMAIN;
+  }
+
   try {
-    const parsedUrl = new URL(url);
+    const parsedUrl = new URL(env.WEB_HOST);
     const parts = parsedUrl.hostname.split(".");
 
     // For localhost development
@@ -120,9 +136,10 @@ const urlToTopLevelDomain = (url: string): string => {
     }
 
     // Extract top-level domain (last two parts)
-    return parts.slice(-2).join(".");
+    const domain = parts.slice(-2).join(".");
+    return TWO_LABEL_PUBLIC_SUFFIX.test(domain) ? undefined : domain;
   } catch (error) {
-    console.error("Invalid URL for domain extraction:", url, error);
+    console.error("Invalid URL for domain extraction:", env.WEB_HOST, error);
     throw new Error("Invalid web host URL");
   }
 };
@@ -156,7 +173,7 @@ const setCookieOptions = (c: Context<ApiContext>, maxAge: number) => ({
   httpOnly: true,
   secure: c.env.CLOUDFLARE_ENV !== "development",
   sameSite: "Lax" as const,
-  domain: urlToTopLevelDomain(c.env.WEB_HOST),
+  domain: cookieDomain(c.env),
   maxAge,
   path: "/",
 });
@@ -513,11 +530,11 @@ auth.post("/refresh", async (c) => {
 
 auth.post("/logout", (c) => {
   deleteCookie(c, JWT_ACCESS_TOKEN_NAME, {
-    domain: urlToTopLevelDomain(c.env.WEB_HOST),
+    domain: cookieDomain(c.env),
     path: "/",
   });
   deleteCookie(c, JWT_REFRESH_TOKEN_NAME, {
-    domain: urlToTopLevelDomain(c.env.WEB_HOST),
+    domain: cookieDomain(c.env),
     path: "/",
   });
   return c.redirect(c.env.WEB_HOST);

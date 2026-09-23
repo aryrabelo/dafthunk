@@ -1,5 +1,8 @@
 WEB_HOST=http://localhost:3001
 WEBSITE_URL=http://localhost:3002
+# Optional: Domain attribute for auth cookies. Defaults to the last two labels
+# of WEB_HOST, or a host-only cookie when those are a public suffix (com.br).
+# COOKIE_DOMAIN=example.com.br
 
 EMAIL_DOMAIN=mail.dafthunk.com
 
