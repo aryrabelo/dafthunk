@@ -1,0 +1,18 @@
+apps/api/wrangler.jsonc
+  h_b156936c57c455 303-306,311-313,320,326,330,334,347,470-476,483,488
+apps/app/.env.production
+  h_b156936c57c455 1-5
+apps/app/wrangler.jsonc
+  h_b156936c57c455 10-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0f365f21e650d1eacefaec1717a593a5673c025d",
+  "prompts": {},
+  "humans": {
+    "h_b156936c57c455": {
+      "author": "Ary Rabelo <aryrabelo@gmail.com>"
+    }
+  }
+}
