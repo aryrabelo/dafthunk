@@ -42,6 +42,7 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "@cloudflare/containers": "^0.3.7",
     "@cloudflare/sandbox": "^0.12.9",
+    "@cnb/dafthunk-nodes": "workspace:*",
     "@dafthunk/runtime": "workspace:*",
     "@dafthunk/types": "workspace:*",
     "@dafthunk/utils": "workspace:*",

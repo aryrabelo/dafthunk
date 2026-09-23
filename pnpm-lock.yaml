@@ -51,6 +51,9 @@ importers:
       '@cloudflare/sandbox':
         specifier: ^0.12.9
         version: 0.12.9
+      '@cnb/dafthunk-nodes':
+        specifier: workspace:*
+        version: link:../../packages/cnb-nodes
       '@dafthunk/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
@@ -384,6 +387,25 @@ importers:
       wrangler:
         specifier: ^4.129.0
         version: 4.129.0(@cloudflare/workers-types@5.20260730.1)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+
+  packages/cnb-nodes:
+    dependencies:
+      '@dafthunk/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@dafthunk/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ~5.20260730.1
+        version: 5.20260730.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0))
 
   packages/geo:
     dependencies:

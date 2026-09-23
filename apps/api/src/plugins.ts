@@ -1,3 +1,4 @@
+import { cnbPlugin } from "@cnb/dafthunk-nodes";
 import type { NodePlugin } from "@dafthunk/runtime";
 
 import type { Bindings } from "./context";
@@ -12,4 +13,4 @@ import type { Bindings } from "./context";
  *   import { myPlugin } from "@acme/dafthunk-nodes";
  *   export const nodePlugins: readonly NodePlugin<Bindings>[] = [myPlugin];
  */
-export const nodePlugins: readonly NodePlugin<Bindings>[] = [];
+export const nodePlugins: readonly NodePlugin<Bindings>[] = [cnbPlugin];

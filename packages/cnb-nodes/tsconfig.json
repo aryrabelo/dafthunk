@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["src/**/*", "workflows/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

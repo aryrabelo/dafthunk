@@ -1,0 +1,352 @@
+{
+  "name": "CNB aviso de resultado pronto",
+  "description": "POST /http/<workflowId> with { execucao_id, template, telefone, variaveis }: sends the WhatsApp template; the wamid comes back in nodeExecutions[enviar].outputs.messageId",
+  "trigger": "http_request",
+  "runtime": "worker",
+  "nodes": [
+    {
+      "id": "request",
+      "name": "HTTP Request",
+      "type": "http-request",
+      "description": "Receives an HTTP request and returns the response synchronously",
+      "icon": "log-in",
+      "position": {
+        "x": 0,
+        "y": 200
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "method",
+          "type": "string",
+          "description": "The HTTP method (GET, POST, PUT, DELETE, etc.)"
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "description": "The full URL of the request"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The path portion of the URL"
+        },
+        {
+          "name": "headers",
+          "type": "json",
+          "description": "The HTTP headers as a JSON object"
+        },
+        {
+          "name": "queryParams",
+          "type": "json",
+          "description": "The query parameters as a JSON object"
+        },
+        {
+          "name": "body",
+          "type": "blob",
+          "description": "The raw request body with MIME type"
+        }
+      ]
+    },
+    {
+      "id": "corpo",
+      "name": "JSON Body",
+      "type": "body-json",
+      "description": "Extracts JSON data from the body of the HTTP request",
+      "icon": "braces",
+      "position": {
+        "x": 250,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "required",
+          "type": "boolean",
+          "description": "Whether the JSON data is required. If false, undefined will be returned when the data is missing",
+          "value": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "json",
+          "description": "The parsed JSON data, or undefined if optional and not provided"
+        }
+      ]
+    },
+    {
+      "id": "telefone",
+      "name": "Extrair telefone",
+      "type": "json-extract-string",
+      "description": "Extract a string value from a JSON object using JSONPath",
+      "icon": "text",
+      "position": {
+        "x": 500,
+        "y": 50
+      },
+      "inputs": [
+        {
+          "name": "json",
+          "type": "json",
+          "description": "The JSON object to extract the string from",
+          "required": true
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The JSONPath expression (e.g., \"$.user.profile.name\" or \"$.store.books[0].title\")",
+          "required": true,
+          "value": "$.telefone"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "description": "Default value if no string value is found at the path",
+          "hidden": true,
+          "value": ""
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "string",
+          "description": "The extracted string value"
+        },
+        {
+          "name": "found",
+          "type": "boolean",
+          "description": "Whether a string value was found at the specified path",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "id": "template",
+      "name": "Extrair template",
+      "type": "json-extract-string",
+      "description": "Extract a string value from a JSON object using JSONPath",
+      "icon": "text",
+      "position": {
+        "x": 500,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "json",
+          "type": "json",
+          "description": "The JSON object to extract the string from",
+          "required": true
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The JSONPath expression (e.g., \"$.user.profile.name\" or \"$.store.books[0].title\")",
+          "required": true,
+          "value": "$.template"
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "description": "Default value if no string value is found at the path",
+          "hidden": true,
+          "value": "aviso_resultado"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "string",
+          "description": "The extracted string value"
+        },
+        {
+          "name": "found",
+          "type": "boolean",
+          "description": "Whether a string value was found at the specified path",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "id": "variaveis",
+      "name": "Extrair variaveis",
+      "type": "json-extract-object",
+      "description": "Extract a JSON value from a JSON object using JSONPath",
+      "icon": "braces",
+      "position": {
+        "x": 500,
+        "y": 350
+      },
+      "inputs": [
+        {
+          "name": "json",
+          "type": "json",
+          "description": "The JSON object to extract from",
+          "required": true
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The JSONPath expression (e.g., \"$.user.profile\" or \"$.store.books[*]\")",
+          "required": true,
+          "value": "$.variaveis"
+        },
+        {
+          "name": "defaultValue",
+          "type": "json",
+          "description": "Default value if no JSON value is found at the path",
+          "hidden": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "json",
+          "description": "The extracted JSON value"
+        },
+        {
+          "name": "found",
+          "type": "boolean",
+          "description": "Whether a JSON value was found at the specified path",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "id": "enviar",
+      "name": "Enviar aviso (WhatsApp)",
+      "type": "cnb-whatsapp-template",
+      "description": "Send a WhatsApp template with the Clínica No Bairro Business account",
+      "icon": "file-text",
+      "position": {
+        "x": 800,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "telefone",
+          "type": "string",
+          "description": "Recipient phone number: digits only, with country code",
+          "required": true
+        },
+        {
+          "name": "template",
+          "type": "string",
+          "description": "Name of the approved message template",
+          "value": "aviso_resultado"
+        },
+        {
+          "name": "idioma",
+          "type": "string",
+          "description": "Template language code",
+          "value": "pt_BR"
+        },
+        {
+          "name": "variaveis",
+          "type": "json",
+          "description": "Body parameters: { primeiro_nome, unidade }, sent as {{1}} and {{2}}",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "messageId",
+          "type": "string",
+          "description": "WhatsApp message id (wamid) returned by Meta"
+        }
+      ]
+    },
+    {
+      "id": "response",
+      "name": "HTTP Response",
+      "type": "http-response",
+      "description": "Define the HTTP response for synchronous HTTP Request workflows",
+      "icon": "log-out",
+      "position": {
+        "x": 1100,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "statusCode",
+          "type": "number",
+          "description": "HTTP status code (e.g., 200, 404, 500)",
+          "value": 200
+        },
+        {
+          "name": "headers",
+          "type": "json",
+          "description": "HTTP response headers as a JSON object (Content-Type auto-detected if not provided)"
+        },
+        {
+          "name": "body",
+          "type": "any",
+          "description": "Response body content (any type)"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "statusCode",
+          "type": "number",
+          "description": "HTTP status code",
+          "hidden": true
+        },
+        {
+          "name": "headers",
+          "type": "json",
+          "description": "HTTP response headers",
+          "hidden": true
+        },
+        {
+          "name": "body",
+          "type": "blob",
+          "description": "Response body",
+          "hidden": true
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "corpo",
+      "sourceOutput": "value",
+      "target": "telefone",
+      "targetInput": "json"
+    },
+    {
+      "source": "corpo",
+      "sourceOutput": "value",
+      "target": "template",
+      "targetInput": "json"
+    },
+    {
+      "source": "corpo",
+      "sourceOutput": "value",
+      "target": "variaveis",
+      "targetInput": "json"
+    },
+    {
+      "source": "telefone",
+      "sourceOutput": "value",
+      "target": "enviar",
+      "targetInput": "telefone"
+    },
+    {
+      "source": "template",
+      "sourceOutput": "value",
+      "target": "enviar",
+      "targetInput": "template"
+    },
+    {
+      "source": "variaveis",
+      "sourceOutput": "value",
+      "target": "enviar",
+      "targetInput": "variaveis"
+    },
+    {
+      "source": "enviar",
+      "sourceOutput": "messageId",
+      "target": "response",
+      "targetInput": "body"
+    }
+  ]
+}
