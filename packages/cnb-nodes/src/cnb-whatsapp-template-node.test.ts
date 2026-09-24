@@ -143,6 +143,20 @@ describe("CnbWhatsAppTemplateNode", () => {
     expect(template.language).toEqual({ code: "pt_BR" });
   });
 
+  it("sends to the Graph API under CNB_WHATSAPP_BASE_URL when it is set", async () => {
+    const fetchMock = graphReplies(200, { messages: [{ id: "wamid.X" }] });
+
+    await run(avisoInputs, {
+      ...secrets,
+      CNB_WHATSAPP_PROVIDER: "meta",
+      CNB_WHATSAPP_BASE_URL: "https://graph.example.test/",
+    });
+
+    expect(sentRequest(fetchMock).url).toBe(
+      `https://graph.example.test/v21.0/${PHONE_NUMBER_ID}/messages`
+    );
+  });
+
   it("fails with Meta's error code when the Graph API rejects the send, without leaking the token", async () => {
     graphReplies(400, {
       error: {
@@ -156,7 +170,7 @@ describe("CnbWhatsAppTemplateNode", () => {
     const result = await run(avisoInputs);
 
     expect(result.status).toBe("error");
-    expect(result.error).toContain("code 131026");
+    expect(result.error).toContain("provider meta code 131026");
     expect(result.error).toContain("HTTP 400");
     expect(JSON.stringify(result)).not.toContain(TOKEN);
   });
@@ -167,6 +181,7 @@ describe("CnbWhatsAppTemplateNode", () => {
     const result = await run(avisoInputs);
 
     expect(result.status).toBe("error");
+    expect(result.error).toContain("provider meta code 502");
     expect(result.error).toContain("HTTP 502");
   });
 
@@ -222,6 +237,190 @@ describe("CnbWhatsAppTemplateNode", () => {
     const result = await run(inputs);
 
     expect(result.status).toBe("error");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+const WAHA_KEY = "waha-secret-key-do-not-leak";
+const WAHA_BASE = "https://waha.example.test";
+
+const wahaEnv: Record<string, string> = {
+  CNB_WHATSAPP_PROVIDER: "waha",
+  CNB_WHATSAPP_BASE_URL: `${WAHA_BASE}/`,
+  CNB_WAHA_API_KEY: WAHA_KEY,
+  CNB_WAHA_SESSION: "cnb-aviso-teste",
+  CNB_WHATSAPP_DESTINOS_PERMITIDOS: " +55 (93) 99123-4567 , 5593999990001",
+};
+
+const D7_TEXT =
+  "Olá, Maria! Os resultados dos seus exames na Clínica No Bairro estão prontos. " +
+  "Você pode consultá-los pelo portal ou retirar na unidade Centro.\n\n" +
+  "https://clinicanobairro.com.br/resultados\n\n" +
+  "Para não receber mais avisos, responda PARAR.";
+
+describe("CnbWhatsAppTemplateNode with the waha provider", () => {
+  it("sends the rendered D7 text through sendText and returns the WAHA id as messageId", async () => {
+    const fetchMock = graphReplies(201, {
+      id: "true_5593991234567@c.us_3EB0AAAA",
+      fromMe: true,
+      body: D7_TEXT,
+    });
+
+    const result = await run(avisoInputs, wahaEnv);
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs).toEqual({
+      messageId: "true_5593991234567@c.us_3EB0AAAA",
+    });
+    const request = sentRequest(fetchMock);
+    expect(request.url).toBe(`${WAHA_BASE}/api/sendText`);
+    expect(request.method).toBe("POST");
+    expect(request.headers.get("x-api-key")).toBe(WAHA_KEY);
+    expect(request.headers.get("content-type")).toBe("application/json");
+    expect(request.headers.get("authorization")).toBeNull();
+    expect(request.body).toEqual({
+      session: "cnb-aviso-teste",
+      chatId: "5593991234567@c.us",
+      text: D7_TEXT,
+    });
+    expect(JSON.stringify(result)).not.toContain(WAHA_KEY);
+  });
+
+  it("reads messageId from id._serialized when WAHA returns the id as an object", async () => {
+    graphReplies(201, {
+      id: {
+        fromMe: true,
+        remote: "5593991234567@c.us",
+        id: "3EB0BBBB",
+        _serialized: "true_5593991234567@c.us_3EB0BBBB",
+      },
+    });
+
+    const result = await run(avisoInputs, wahaEnv);
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs).toEqual({
+      messageId: "true_5593991234567@c.us_3EB0BBBB",
+    });
+  });
+
+  it("fails with provider waha code 422 when the session is not WORKING, without leaking the key", async () => {
+    graphReplies(422, {
+      statusCode: 422,
+      message: `Session status is not as expected. X-Api-Key: ${WAHA_KEY}`,
+      error: "Unprocessable Entity",
+    });
+
+    const result = await run(avisoInputs, wahaEnv);
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("provider waha code 422");
+    expect(result.error).toContain("Session status is not as expected");
+    expect(JSON.stringify(result)).not.toContain(WAHA_KEY);
+  });
+
+  it("prefers the WAHA error code over the HTTP status when the body carries one", async () => {
+    graphReplies(400, { code: 475, message: "Rate limit" });
+
+    const result = await run(avisoInputs, wahaEnv);
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("provider waha code 475");
+  });
+
+  it("fails without leaking the key when the request to WAHA throws", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error(`connect ECONNREFUSED key=${WAHA_KEY}`);
+      })
+    );
+
+    const result = await run(avisoInputs, wahaEnv);
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("provider waha");
+    expect(result.error).toContain("ECONNREFUSED");
+    expect(JSON.stringify(result)).not.toContain(WAHA_KEY);
+  });
+
+  it("fails when a 2xx WAHA reply carries no id", async () => {
+    graphReplies(201, { fromMe: true });
+
+    const result = await run(avisoInputs, wahaEnv);
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("provider waha");
+    expect(result.error).toContain("no message id");
+  });
+
+  it.each([
+    ["outside the list", "5593999990001, 5593999990003"],
+    ["the list is empty", " , "],
+  ])("refuses a destination when %s, before any call to WAHA", async (_case, lista) => {
+    const fetchMock = graphReplies(201, { id: "never" });
+
+    const result = await run(avisoInputs, {
+      ...wahaEnv,
+      CNB_WHATSAPP_DESTINOS_PERMITIDOS: lista,
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("provider waha code destino_nao_permitido");
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("refuses every destination when the allow-list is unset", async () => {
+    const fetchMock = graphReplies(201, { id: "never" });
+    const env = { ...wahaEnv };
+    delete env.CNB_WHATSAPP_DESTINOS_PERMITIDOS;
+
+    const result = await run(avisoInputs, env);
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("provider waha code destino_nao_permitido");
+    expect(fetchMock).toHaveBeenCalledTimes(0);
+  });
+
+  it.each([
+    "CNB_WHATSAPP_BASE_URL",
+    "CNB_WAHA_API_KEY",
+    "CNB_WAHA_SESSION",
+  ])("fails naming %s when it is missing, without calling WAHA", async (missing) => {
+    const fetchMock = graphReplies(201, { id: "never" });
+    const env = { ...wahaEnv };
+    delete env[missing];
+
+    const result = await run(avisoInputs, env);
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain(missing);
+    expect(result.error).toContain("waha");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a template other than aviso_resultado, since WAHA only has the D7 text", async () => {
+    const fetchMock = graphReplies(201, { id: "never" });
+
+    const result = await run({ ...avisoInputs, template: "lembrete" }, wahaEnv);
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("provider waha code template_desconhecido");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("CnbWhatsAppTemplateNode provider selection", () => {
+  it("rejects an unknown CNB_WHATSAPP_PROVIDER without calling anything", async () => {
+    const fetchMock = graphReplies(200, { messages: [{ id: "wamid.X" }] });
+
+    const result = await run(avisoInputs, {
+      ...secrets,
+      CNB_WHATSAPP_PROVIDER: "twilio",
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.error).toContain("CNB_WHATSAPP_PROVIDER");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

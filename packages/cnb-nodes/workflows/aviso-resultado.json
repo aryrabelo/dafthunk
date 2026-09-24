@@ -251,7 +251,7 @@
         {
           "name": "messageId",
           "type": "string",
-          "description": "WhatsApp message id (wamid) returned by Meta"
+          "description": "Message id returned by the provider (Meta wamid or WAHA id)"
         }
       ]
     },
