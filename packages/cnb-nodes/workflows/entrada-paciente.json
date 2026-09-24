@@ -1,0 +1,256 @@
+{
+  "name": "CNB entrada de paciente",
+  "description": "POST /http/<workflowId> with one canonical EventoWhatsApp (CNB design D18): validates it and answers { recebido: true, tipo, eventoId }; the fields come out of nodeExecutions[evento].outputs",
+  "trigger": "http_request",
+  "runtime": "worker",
+  "nodes": [
+    {
+      "id": "request",
+      "name": "HTTP Request",
+      "type": "http-request",
+      "description": "Receives an HTTP request and returns the response synchronously",
+      "icon": "log-in",
+      "position": {
+        "x": 0,
+        "y": 200
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "method",
+          "type": "string",
+          "description": "The HTTP method (GET, POST, PUT, DELETE, etc.)"
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "description": "The full URL of the request"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "description": "The path portion of the URL"
+        },
+        {
+          "name": "headers",
+          "type": "json",
+          "description": "The HTTP headers as a JSON object"
+        },
+        {
+          "name": "queryParams",
+          "type": "json",
+          "description": "The query parameters as a JSON object"
+        },
+        {
+          "name": "body",
+          "type": "blob",
+          "description": "The raw request body with MIME type"
+        }
+      ]
+    },
+    {
+      "id": "corpo",
+      "name": "JSON Body",
+      "type": "body-json",
+      "description": "Extracts JSON data from the body of the HTTP request",
+      "icon": "braces",
+      "position": {
+        "x": 250,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "required",
+          "type": "boolean",
+          "description": "Whether the JSON data is required. If false, undefined will be returned when the data is missing",
+          "value": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "value",
+          "type": "json",
+          "description": "The parsed JSON data, or undefined if optional and not provided"
+        }
+      ]
+    },
+    {
+      "id": "evento",
+      "name": "Validar evento (WhatsApp)",
+      "type": "cnb-evento-whatsapp",
+      "description": "Validate one canonical CNB WhatsApp event and expose its fields",
+      "icon": "message-circle",
+      "position": {
+        "x": 500,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "evento",
+          "type": "json",
+          "description": "The canonical EventoWhatsApp posted by the CNB",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "evento",
+          "type": "json",
+          "description": "The validated event, with only its canonical fields"
+        },
+        {
+          "name": "tipo",
+          "type": "string",
+          "description": "status, mensagem or sessao"
+        },
+        {
+          "name": "provedor",
+          "type": "string",
+          "description": "meta or waha"
+        },
+        {
+          "name": "eventoId",
+          "type": "string",
+          "description": "Provider event id, the CNB dedupe key"
+        },
+        {
+          "name": "telefone",
+          "type": "string",
+          "description": "Patient phone in digits, or null when only an opaque contact is known (mensagem)"
+        },
+        {
+          "name": "contatoOpaco",
+          "type": "string",
+          "description": "Opaque contact such as a WAHA @lid, or null (mensagem)"
+        },
+        {
+          "name": "texto",
+          "type": "string",
+          "description": "Message text (mensagem)"
+        },
+        {
+          "name": "estado",
+          "type": "string",
+          "description": "enviado, entregue, lido or falhou (status); ativa or caida (sessao)"
+        },
+        {
+          "name": "mensagemId",
+          "type": "string",
+          "description": "Provider message id (status and mensagem)"
+        }
+      ]
+    },
+    {
+      "id": "resposta",
+      "name": "Montar resposta",
+      "type": "json-template",
+      "description": "Create a JSON object using a template with variable injection using ${variableName} syntax",
+      "icon": "code",
+      "position": {
+        "x": 800,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "template",
+          "type": "json",
+          "description": "The JSON template object with variables in ${variableName} format",
+          "required": true,
+          "value": {
+            "recebido": true,
+            "tipo": "${tipo}",
+            "eventoId": "${eventoId}"
+          }
+        },
+        {
+          "name": "variables",
+          "type": "json",
+          "description": "JSON object containing variable values to inject",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "json",
+          "description": "The resulting JSON object with variables replaced"
+        },
+        {
+          "name": "missingVariables",
+          "type": "json",
+          "description": "Array of variable names that were not found in the variables object",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "id": "response",
+      "name": "HTTP Response",
+      "type": "http-response",
+      "description": "Define the HTTP response for synchronous HTTP Request workflows",
+      "icon": "log-out",
+      "position": {
+        "x": 1100,
+        "y": 200
+      },
+      "inputs": [
+        {
+          "name": "statusCode",
+          "type": "number",
+          "description": "HTTP status code (e.g., 200, 404, 500)",
+          "value": 200
+        },
+        {
+          "name": "headers",
+          "type": "json",
+          "description": "HTTP response headers as a JSON object (Content-Type auto-detected if not provided)"
+        },
+        {
+          "name": "body",
+          "type": "any",
+          "description": "Response body content (any type)"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "statusCode",
+          "type": "number",
+          "description": "HTTP status code",
+          "hidden": true
+        },
+        {
+          "name": "headers",
+          "type": "json",
+          "description": "HTTP response headers",
+          "hidden": true
+        },
+        {
+          "name": "body",
+          "type": "blob",
+          "description": "Response body",
+          "hidden": true
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "corpo",
+      "sourceOutput": "value",
+      "target": "evento",
+      "targetInput": "evento"
+    },
+    {
+      "source": "evento",
+      "sourceOutput": "evento",
+      "target": "resposta",
+      "targetInput": "variables"
+    },
+    {
+      "source": "resposta",
+      "sourceOutput": "result",
+      "target": "response",
+      "targetInput": "body"
+    }
+  ]
+}
